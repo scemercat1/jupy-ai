@@ -19,7 +19,7 @@ export default function Chat() {
 
     setMessages(newMessages);
 
-    const res = await fetch("https://YOUR-CLOUDFLARE-WORKER.workers.dev", {
+    const res = await fetch("https://jupyai.junethecat07.workers.dev/"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
