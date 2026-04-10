@@ -26,7 +26,7 @@ export default function Chat() {
 
     try {
       const res = await fetch(
-        "https://jupyai.junethecat07.workers.dev/",
+        "https://jupyai.junethecat07.workers.dev",
         {
           method: "POST",
           headers: {
