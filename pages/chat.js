@@ -19,14 +19,16 @@ export default function Chat() {
 
     setMessages(newMessages);
 
-    const res = await fetch("https://jupyai.junethecat07.workers.dev/"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: input,
-        name: name
-      })
-    });
+const res = await fetch("https://jupyai.junethecat07.workers.dev/", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    message: input,
+    name: name
+  })
+});
 
     const data = await res.json();
 
