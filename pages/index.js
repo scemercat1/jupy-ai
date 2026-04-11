@@ -1,22 +1,34 @@
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-
-// încărcăm Chat dinamic ca să nu fie SSR
-const Chat = dynamic(() => import("./chat"), { ssr: false });
+import { useState } from "react";
+import { useRouter } from "next/router";
 
 export default function Home() {
   const [name, setName] = useState("");
+  const router = useRouter();
 
-  useEffect(() => {
-    const savedName = localStorage.getItem("jupy_name") || "";
-    setName(savedName);
-  }, []);
+  const start = () => {
+    if (!name.trim()) return alert("Enter your name");
+
+    // salvăm numele
+    localStorage.setItem("jupy_name", name);
+
+    // mergem la chat
+    router.push("/chat");
+  };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Welcome to Jupy AI</h1>
-      <p>Simple AI chat with memory per name, no login required.</p>
-      <Chat />
+    <div style={{ height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+      <h1>Jupy AI 🤖</h1>
+
+      <input
+        placeholder="Enter your name..."
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        style={{ padding: "10px", marginTop: "10px" }}
+      />
+
+      <button onClick={start} style={{ marginTop: "10px", padding: "10px" }}>
+        Start Session
+      </button>
     </div>
   );
 }
