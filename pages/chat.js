@@ -11,60 +11,61 @@ export default function Chat() {
 
   const bottomRef = useRef();
 
-  // 🔐 check name
   useEffect(() => {
-    const savedName = localStorage.getItem("jupy_name");
-
-    if (!savedName) {
-      router.push("/");
-    } else {
-      setName(savedName);
-    }
+    const saved = localStorage.getItem("jupy_name");
+    if (!saved) router.push("/");
+    else setName(saved);
   }, []);
 
-  // 🔽 auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // 🚀 send message
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
   const handleSend = async () => {
-    if (!input.trim() || !name || loading) return;
+    if (!input.trim() || loading) return;
 
     const userMsg = input;
-
-    setMessages(prev => [...prev, { role: "user", text: userMsg }]);
     setInput("");
+
+    // user bubble
+    setMessages(prev => [...prev, { role: "user", text: userMsg }]);
     setLoading(true);
 
     try {
       const res = await fetch("https://jupyai.junethecat07.workers.dev/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: userMsg,
-          name: name,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg, name }),
       });
 
       const data = await res.json();
+      const reply = data.reply || "No response";
 
+      // 💬 fake streaming effect
+      let streamed = "";
+      setMessages(prev => [...prev, { role: "assistant", text: "" }]);
+
+      for (let i = 0; i < reply.length; i++) {
+        streamed += reply[i];
+
+        setMessages(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = {
+            role: "assistant",
+            text: streamed,
+          };
+          return copy;
+        });
+
+        await sleep(8);
+      }
+
+    } catch (e) {
       setMessages(prev => [
         ...prev,
-        {
-          role: "assistant",
-          text: data.reply || "No response",
-        },
-      ]);
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          text: "⚠️ Error connecting to server",
-        },
+        { role: "assistant", text: "⚠️ Connection error" },
       ]);
     }
 
@@ -73,12 +74,13 @@ export default function Chat() {
 
   return (
     <div style={styles.page}>
+      {/* animated background blobs */}
+      <div className="bg"></div>
+
       {/* HEADER */}
       <div style={styles.header}>
-        <div>🤖 Jupy AI</div>
-        <div style={{ fontSize: 14, opacity: 0.7 }}>
-          {name}
-        </div>
+        <div style={styles.logo}>⚡ Jupy AI</div>
+        <div style={styles.name}>{name}</div>
       </div>
 
       {/* CHAT */}
@@ -91,23 +93,21 @@ export default function Chat() {
               alignSelf: m.role === "user" ? "flex-end" : "flex-start",
               background:
                 m.role === "user"
-                  ? "linear-gradient(135deg, #4f8cff, #6ea8ff)"
-                  : "#2a2a2a",
-              color: m.role === "user" ? "#fff" : "#eee",
+                  ? "linear-gradient(135deg,#4f8cff,#6ea8ff)"
+                  : "rgba(255,255,255,0.08)",
+              boxShadow:
+                m.role === "user"
+                  ? "0 10px 30px rgba(79,140,255,0.3)"
+                  : "0 10px 30px rgba(0,0,0,0.3)",
             }}
           >
             {m.text}
           </div>
         ))}
 
-        {/* 🤔 thinking animation */}
         {loading && (
-          <div style={{ ...styles.bubble, background: "#2a2a2a" }}>
-            <span className="typing">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
+          <div style={styles.thinking}>
+            <span></span><span></span><span></span>
           </div>
         )}
 
@@ -117,110 +117,133 @@ export default function Chat() {
       {/* INPUT */}
       <div style={styles.inputBox}>
         <input
-          style={styles.input}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Ask Jupy something..."
+          style={styles.input}
+          onKeyDown={e => e.key === "Enter" && handleSend()}
         />
 
-        <button style={styles.sendBtn} onClick={handleSend}>
+        <button onClick={handleSend} style={styles.button}>
           ➤
         </button>
       </div>
 
-      {/* CSS animation */}
+      {/* STYLE */}
       <style>{`
-        .typing {
-          display: flex;
-          gap: 4px;
+        body {
+          margin: 0;
+          background: #0a0a0f;
         }
 
-        .typing span {
+        .bg {
+          position: fixed;
+          width: 100%;
+          height: 100%;
+          background: radial-gradient(circle at 20% 20%, #4f8cff33, transparent 40%),
+                      radial-gradient(circle at 80% 70%, #ff4fd833, transparent 40%);
+          animation: move 10s infinite alternate;
+          z-index: -1;
+        }
+
+        @keyframes move {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.2); }
+        }
+
+        @keyframes float {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+
+        .dot {
           width: 6px;
           height: 6px;
-          background: #aaa;
+          background: white;
           border-radius: 50%;
-          animation: bounce 1.2s infinite;
-        }
-
-        .typing span:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-
-        .typing span:nth-child(3) {
-          animation-delay: 0.4s;
-        }
-
-        @keyframes bounce {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-          40% { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </div>
   );
 }
 
-// 🎨 styles
 const styles = {
   page: {
     height: "100vh",
     display: "flex",
     flexDirection: "column",
-    background: "#0f0f0f",
-    color: "#fff",
+    color: "white",
     fontFamily: "system-ui",
+    background: "#0a0a0f",
   },
 
   header: {
-    padding: "15px 20px",
-    borderBottom: "1px solid #222",
     display: "flex",
     justifyContent: "space-between",
+    padding: "15px 20px",
+    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    backdropFilter: "blur(10px)",
+  },
+
+  logo: {
+    fontWeight: "bold",
+    letterSpacing: 1,
+  },
+
+  name: {
+    opacity: 0.7,
   },
 
   chat: {
     flex: 1,
     overflowY: "auto",
+    padding: 20,
     display: "flex",
     flexDirection: "column",
     gap: 10,
-    padding: 20,
   },
 
   bubble: {
-    padding: "10px 14px",
-    borderRadius: 14,
+    padding: "12px 14px",
+    borderRadius: 16,
     maxWidth: "75%",
-    lineHeight: 1.4,
     fontSize: 14,
-    animation: "fadeIn 0.2s ease",
+    lineHeight: 1.4,
+    backdropFilter: "blur(10px)",
+    animation: "float 3s ease-in-out infinite",
   },
 
   inputBox: {
     display: "flex",
-    padding: 10,
-    borderTop: "1px solid #222",
+    padding: 12,
     gap: 10,
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+    backdropFilter: "blur(10px)",
   },
 
   input: {
     flex: 1,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     border: "none",
     outline: "none",
-    background: "#1e1e1e",
-    color: "#fff",
+    background: "rgba(255,255,255,0.08)",
+    color: "white",
   },
 
-  sendBtn: {
+  button: {
     padding: "0 16px",
-    borderRadius: 8,
+    borderRadius: 12,
     border: "none",
-    background: "#4f8cff",
-    color: "#fff",
+    background: "linear-gradient(135deg,#4f8cff,#6ea8ff)",
+    color: "white",
     cursor: "pointer",
     fontSize: 18,
+  },
+
+  thinking: {
+    display: "flex",
+    gap: 5,
+    padding: 10,
   },
 };
